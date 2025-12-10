@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const netlifyUser = await auth.login(email, password, true)
       setNetlifyUser(netlifyUser)
       
+      // Busca o crea el usuario en la app
       let appUser = findUserByEmail(email)
       if (!appUser) {
         appUser = createUserFromNetlify(netlifyUser)
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(appUser)
       setCurrentUser(appUser)
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error)
       return false
     }
@@ -68,14 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (name: string, email: string, password: string, farmName: string): Promise<boolean> => {
     try {
-      const existingUser = findUserByEmail(email)
-      if (existingUser) {
-        return false
-      }
-
+      // Primero intenta registrarse en Netlify Identity
       const netlifyUser = await auth.signup(email, password, { full_name: name, farm_name: farmName })
       setNetlifyUser(netlifyUser)
 
+      // Si Netlify lo permite, crea el usuario en la app
       const newUser: User = {
         id: netlifyUser.id,
         name,
@@ -88,21 +86,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(newUser)
       setCurrentUser(newUser)
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error("Register error:", error)
+      // El error de Netlify Identity indicará si el email ya existe
       return false
     }
   }
 
-  const logout = async () => {
-    try {
-      await auth.logout()
-      setUser(null)
-      setNetlifyUser(null)
-      setCurrentUser(null)
-    } catch (error) {
-      console.error("Logout error:", error)
-    }
+  const logout = () => {
+    setUser(null)
+    setNetlifyUser(null)
+    setCurrentUser(null)
   }
 
   const updateUser = (updatedUser: User) => {

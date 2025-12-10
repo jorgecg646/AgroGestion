@@ -26,7 +26,7 @@ export function LoginForm() {
 
     const success = await login(email, password)
     if (!success) {
-      setError("Usuario no encontrado. Por favor, regístrese primero.")
+      setError("Email o contraseña incorrectos. Verifica tus credenciales.")
     }
     setIsLoading(false)
   }
@@ -57,7 +57,7 @@ export function LoginForm() {
 
     const success = await register(name, email, password, farmName)
     if (!success) {
-      setError("Ya existe un usuario con este email.")
+      setError("No se pudo registrar. Es posible que el email ya esté registrado o la contraseña sea muy débil.")
     }
     setIsLoading(false)
   }
