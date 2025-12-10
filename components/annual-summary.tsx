@@ -51,6 +51,11 @@ export function AnnualSummary() {
     setSelectedYear((y) => y ?? new Date().getFullYear())
   }, [])
 
+  // Don't render until selectedYear is initialized
+  if (selectedYear === null) {
+    return null
+  }
+
   const yearExpenses = expenses.filter((e) => e.year === selectedYear)
   const yearTotal = yearExpenses.reduce((sum, e) => sum + e.amount, 0)
 
@@ -80,10 +85,12 @@ export function AnnualSummary() {
     .filter((c) => c.value > 0)
     .sort((a, b) => b.value - a.value)
 
-  const years = selectedYear ? Array.from({ length: 5 }, (_, i) => selectedYear - i) : []
+  const years = Array.from({ length: 5 }, (_, i) => selectedYear - i)
   const averageMonthly = yearTotal / 12
 
-  const maxMonth = monthlyData.reduce((max, m) => (m.total > max.total ? m : max), monthlyData[0])
+  const maxMonth = monthlyData.length > 0
+    ? monthlyData.reduce((max, m) => (m.total > max.total ? m : max), monthlyData[0])
+    : { month: '-', total: 0 }
 
   return (
     <div className="space-y-6 animate-in">
