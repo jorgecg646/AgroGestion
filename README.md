@@ -5,7 +5,6 @@ AgroGestion es una pequeña aplicación web para la gestión agrícola desarroll
 **Estado:** En desarrollo
 
 **Demo / Capturas:**
-- (Añadir capturas o enlace a demo cuando estén disponibles)
 
 **Características principales**
 
@@ -82,18 +81,6 @@ Si usas `npm` o `yarn`, adapta los comandos (`npm install` / `npm run dev`, etc.
 - Mantén los hooks y utilidades en `hooks/` y `lib/` respectivamente para reutilización.
 - Añade variables de entorno en un fichero `.env.local` si integras servicios externos.
 
-**Contribuir**
-
-1. Crea una rama con un nombre descriptivo: `feature/mi-cambio`.
-2. Haz commits pequeños y claros.
-3. Abre Pull Request para revisión.
-
-Si quieres que te ayude a añadir un CONTRIBUTING.md o a configurar CI/CD, dímelo y lo preparo.
-
 **Licencia**
 
-Por defecto sin licencia. Añade un archivo `LICENSE` si quieres publicar el proyecto.
-
-**Contacto**
-
-Para más información o colaboración: abre un issue o contáctame en el repositorio.
+Este proyecto está bajo la licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
