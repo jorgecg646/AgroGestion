@@ -15,6 +15,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, farmName: string) => Promise<boolean>
   logout: () => void
   updateUser: (user: User) => void
+  requestPasswordRecovery: (email: string) => Promise<boolean>
+  recoverPassword: (token: string, newPassword: string) => Promise<boolean>
   netlifyUser: any | null
 }
 
@@ -50,14 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const netlifyUser = await auth.login(email, password, true)
       setNetlifyUser(netlifyUser)
-      
+
       // Busca o crea el usuario en la app
       let appUser = findUserByEmail(email)
       if (!appUser) {
         appUser = createUserFromNetlify(netlifyUser)
         saveUser(appUser)
       }
-      
+
       setUser(appUser)
       setCurrentUser(appUser)
       return true
@@ -105,8 +107,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentUser(updatedUser)
   }
 
+  const requestPasswordRecovery = async (email: string): Promise<boolean> => {
+    try {
+      console.log("Requesting password recovery for:", email)
+      console.log("Netlify Identity URL:", netlifyIdentityUrl)
+      await auth.requestPasswordRecovery(email)
+      console.log("Password recovery email sent successfully")
+      return true
+    } catch (error: any) {
+      console.error("Password recovery error:", error)
+      console.error("Error message:", error?.message)
+      console.error("Error status:", error?.status)
+      console.error("Error JSON:", JSON.stringify(error, null, 2))
+      return false
+    }
+  }
+
+  const recoverPassword = async (token: string, newPassword: string): Promise<boolean> => {
+    try {
+      console.log("Recovering password with token")
+      await auth.recover(token, true)
+      const currentUser = auth.currentUser()
+      if (currentUser) {
+        await currentUser.update({ password: newPassword })
+        console.log("Password updated successfully")
+        return true
+      }
+      return false
+    } catch (error: any) {
+      console.error("Recover password error:", error)
+      return false
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser, netlifyUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser, requestPasswordRecovery, recoverPassword, netlifyUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -21,11 +21,19 @@ const nextConfig = {
       'recharts',
       'date-fns',
     ],
+    // Optimiza CSS reduciendo chunks
+    optimizeCss: true,
+    // Usar browserslist para SWC (evita polyfills innecesarios)
+    browsersListForSwc: true,
+    // No incluir polyfills para navegadores legacy
+    legacyBrowsers: false,
   },
   // Optimizaciones de rendimiento
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  // Configuración para reducir polyfills
+  swcMinify: true,
 }
 
 export default nextConfig

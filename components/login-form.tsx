@@ -1,24 +1,52 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "./auth-context"
 import { Button, Input, Label } from "@/components/ui/form-elements"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Leaf, Mail, Lock, User, Building2, ArrowRight, Sparkles, ShieldCheck, Eye, EyeOff } from "lucide-react"
+import { Leaf, Mail, Lock, User, Building2, ArrowRight, Sparkles, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react"
 
 export function LoginForm() {
-  const { login, register } = useAuth()
+  const { login, register, requestPasswordRecovery, recoverPassword } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
   const [showLoginPassword, setShowLoginPassword] = useState(false)
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("")
+  // Estados para el reset de contraseña
+  const [recoveryToken, setRecoveryToken] = useState<string | null>(null)
+  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
+
+  // Detectar recovery_token en la URL al cargar
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash
+      if (hash.includes("recovery_token=")) {
+        const token = hash.split("recovery_token=")[1]?.split("&")[0]
+        if (token) {
+          console.log("Recovery token detected:", token)
+          setRecoveryToken(token)
+          setShowResetPassword(true)
+          // Limpiar el hash de la URL
+          window.history.replaceState(null, "", window.location.pathname)
+        }
+      }
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
+    setSuccessMessage("")
 
     const formData = new FormData(e.currentTarget)
     const email = formData.get("email") as string
@@ -27,6 +55,59 @@ export function LoginForm() {
     const success = await login(email, password)
     if (!success) {
       setError("Email o contraseña incorrectos. Verifica tus credenciales.")
+    }
+    setIsLoading(false)
+  }
+
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    setSuccessMessage("")
+
+    const success = await requestPasswordRecovery(forgotPasswordEmail)
+    if (success) {
+      setSuccessMessage("Te hemos enviado un email con las instrucciones para restablecer tu contraseña.")
+      setShowForgotPassword(false)
+      setForgotPasswordEmail("")
+    } else {
+      setError("No se pudo enviar el email. Verifica que el email sea correcto.")
+    }
+    setIsLoading(false)
+  }
+
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+
+    if (newPassword !== confirmNewPassword) {
+      setError("Las contraseñas no coinciden.")
+      setIsLoading(false)
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.")
+      setIsLoading(false)
+      return
+    }
+
+    if (!recoveryToken) {
+      setError("Token de recuperación no válido.")
+      setIsLoading(false)
+      return
+    }
+
+    const success = await recoverPassword(recoveryToken, newPassword)
+    if (success) {
+      setSuccessMessage("¡Contraseña actualizada correctamente! Ya puedes iniciar sesión.")
+      setShowResetPassword(false)
+      setRecoveryToken(null)
+      setNewPassword("")
+      setConfirmNewPassword("")
+    } else {
+      setError("No se pudo actualizar la contraseña. El enlace puede haber expirado.")
     }
     setIsLoading(false)
   }
@@ -200,6 +281,12 @@ export function LoginForm() {
                     {error}
                   </div>
                 )}
+                {successMessage && (
+                  <div className="bg-green-500/10 text-green-600 text-sm p-4 rounded-xl border border-green-500/20 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    {successMessage}
+                  </div>
+                )}
                 <Button
                   type="submit"
                   className="w-full h-12 rounded-xl text-base font-semibold gradient-primary hover:opacity-90 transition-opacity group"
@@ -214,7 +301,76 @@ export function LoginForm() {
                     </>
                   )}
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(true)
+                    setError("")
+                    setSuccessMessage("")
+                  }}
+                  className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  ¿Has olvidado tu contraseña?
+                </button>
               </form>
+
+              {/* Modal de recuperación de contraseña */}
+              {showForgotPassword && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                  <div className="bg-background rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl animate-in">
+                    <h3 className="text-xl font-bold text-foreground mb-2">Recuperar contraseña</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
+                    </p>
+                    <form onSubmit={handleForgotPassword} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="forgot-email" className="text-sm font-medium">
+                          Email
+                        </Label>
+                        <div className="relative group">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                          <Input
+                            id="forgot-email"
+                            type="email"
+                            placeholder="tu@email.com"
+                            required
+                            value={forgotPasswordEmail}
+                            onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                            className="pl-12 h-12 rounded-xl border-border bg-secondary/50 focus:bg-background focus:border-primary transition-all"
+                          />
+                        </div>
+                      </div>
+                      {error && (
+                        <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-xl border border-destructive/20 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-destructive" />
+                          {error}
+                        </div>
+                      )}
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setShowForgotPassword(false)
+                            setError("")
+                            setForgotPasswordEmail("")
+                          }}
+                          className="flex-1 h-12 rounded-xl text-base font-semibold bg-secondary text-foreground hover:bg-secondary/80 transition-colors"
+                          disabled={isLoading}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          type="submit"
+                          className="flex-1 h-12 rounded-xl text-base font-semibold gradient-primary hover:opacity-90 transition-opacity"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Enviando..." : "Enviar enlace"}
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="register" className="mt-0 space-y-6">
@@ -362,6 +518,97 @@ export function LoginForm() {
           </p>
         </div>
       </div>
+
+      {/* Modal de restablecer contraseña */}
+      {showResetPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl animate-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
+                <KeyRound className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Nueva contraseña</h3>
+                <p className="text-sm text-muted-foreground">Introduce tu nueva contraseña</p>
+              </div>
+            </div>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password" className="text-sm font-medium">
+                  Nueva contraseña
+                </Label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pl-12 pr-12 h-12 rounded-xl border-border bg-secondary/50 focus:bg-background focus:border-primary transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password" className="text-sm font-medium">
+                  Confirmar nueva contraseña
+                </Label>
+                <div className="relative group">
+                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    id="confirm-new-password"
+                    type={showConfirmNewPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    className="pl-12 pr-12 h-12 rounded-xl border-border bg-secondary/50 focus:bg-background focus:border-primary transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showConfirmNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showConfirmNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+              {error && (
+                <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-xl border border-destructive/20 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-destructive" />
+                  {error}
+                </div>
+              )}
+              <Button
+                type="submit"
+                className="w-full h-12 rounded-xl text-base font-semibold gradient-primary hover:opacity-90 transition-opacity group"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  "Actualizando..."
+                ) : (
+                  <>
+                    Guardar nueva contraseña
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
