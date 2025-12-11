@@ -1,14 +1,28 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { AuthProvider, useAuth } from "@/components/auth-context"
 import { LoginForm } from "@/components/login-form"
 import { Navbar } from "@/components/navbar"
-import { Dashboard } from "@/components/dashboard"
 import { ExpensesManager } from "@/components/expenses-manager"
-import { AnnualSummary } from "@/components/annual-summary"
-import { FarmMap } from "@/components/farm-map"
 import { Leaf } from "lucide-react"
+
+// Lazy load heavy components to reduce initial bundle size
+const Dashboard = dynamic(() => import("@/components/dashboard").then(mod => ({ default: mod.Dashboard })), {
+  loading: () => <div className="flex items-center justify-center p-8"><div className="animate-pulse">Cargando...</div></div>,
+  ssr: false,
+})
+
+const AnnualSummary = dynamic(() => import("@/components/annual-summary").then(mod => ({ default: mod.AnnualSummary })), {
+  loading: () => <div className="flex items-center justify-center p-8"><div className="animate-pulse">Cargando...</div></div>,
+  ssr: false,
+})
+
+const FarmMap = dynamic(() => import("@/components/farm-map").then(mod => ({ default: mod.FarmMap })), {
+  loading: () => <div className="flex items-center justify-center p-8"><div className="animate-pulse">Cargando mapa...</div></div>,
+  ssr: false,
+})
 
 function AppContent() {
   const { user, isLoading } = useAuth()

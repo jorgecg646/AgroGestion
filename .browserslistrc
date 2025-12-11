@@ -1,0 +1,4 @@
+# Navegadores modernos únicamente - evita polyfills innecesarios
+# Esto elimina polyfills para Array.at, Array.flat, Object.fromEntries, etc.
+
+defaults and fully supports es6-module

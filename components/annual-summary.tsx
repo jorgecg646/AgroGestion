@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "./auth-context"
-import { getExpenses } from "@/lib/storage"
+import { getExpensesAsync } from "@/lib/storage"
 import { type Expense, MONTHS, EXPENSE_CATEGORIES } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarChart3, PieChartIcon, TrendingUp, Calendar, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { BarChart3, PieChartIcon, TrendingUp, Calendar, Wallet, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react"
 import {
   XAxis,
   YAxis,
@@ -39,12 +39,26 @@ export function AnnualSummary() {
   const { user } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const loadExpenses = useCallback(async () => {
+    if (!user) return
+    setIsLoading(true)
+    try {
+      const data = await getExpensesAsync(user.id)
+      setExpenses(data)
+    } catch (err) {
+      console.error('Error loading expenses:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user])
 
   useEffect(() => {
     if (user) {
-      setExpenses(getExpenses(user.id))
+      loadExpenses()
     }
-  }, [user])
+  }, [user, loadExpenses])
 
   // Initialize selectedYear on client mount to avoid SSR/client mismatch
   useEffect(() => {
@@ -54,6 +68,14 @@ export function AnnualSummary() {
   // Don't render until selectedYear is initialized
   if (selectedYear === null) {
     return null
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    )
   }
 
   const yearExpenses = expenses.filter((e) => e.year === selectedYear)

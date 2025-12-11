@@ -63,7 +63,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex">
+    <main className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden gradient-primary">
         <div className="absolute inset-0 opacity-10">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -175,7 +175,8 @@ export function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showLoginPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                       {showLoginPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -272,7 +273,8 @@ export function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showRegisterPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                       {showRegisterPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -296,11 +298,28 @@ export function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="accept-privacy"
+                    name="acceptPrivacy"
+                    required
+                    className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0"
+                  />
+                  <label htmlFor="accept-privacy" className="text-sm text-muted-foreground">
+                    Acepto la{" "}
+                    <a href="/privacidad" className="text-primary hover:underline font-medium">
+                      política de privacidad
+                    </a>{" "}
+                    y consiento el tratamiento de mis datos personales para la gestión de mi cuenta.
+                  </label>
                 </div>
                 {error && (
                   <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-xl border border-destructive/20 flex items-center gap-2">
@@ -331,6 +350,6 @@ export function LoginForm() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

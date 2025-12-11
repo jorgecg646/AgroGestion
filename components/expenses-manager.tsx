@@ -1,16 +1,16 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useAuth } from "./auth-context"
-import { getExpenses, saveExpense, deleteExpense } from "@/lib/storage"
+import { getExpensesAsync, saveExpenseAsync, deleteExpenseAsync } from "@/lib/storage"
 import { generateMonthlyPDF } from "@/lib/pdf-generator"
 import { type Expense, EXPENSE_CATEGORIES, MONTHS } from "@/lib/types"
 import { Button, Input, Label } from "@/components/ui/form-elements"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, FileDown, Trash2, Pencil, Search, Receipt, ChevronLeft, ChevronRight, Filter } from "lucide-react"
+import { Plus, FileDown, Trash2, Pencil, Search, Receipt, ChevronLeft, ChevronRight, Filter, Loader2, RefreshCw } from "lucide-react"
 
 export function ExpensesManager() {
   const { user } = useAuth()
@@ -21,12 +21,30 @@ export function ExpensesManager() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadExpenses = useCallback(async () => {
+    if (!user) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const data = await getExpensesAsync(user.id)
+      setExpenses(data)
+    } catch (err) {
+      console.error('Error loading expenses:', err)
+      setError('Error al cargar los gastos. Intenta refrescar la página.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user])
 
   useEffect(() => {
     if (user) {
-      setExpenses(getExpenses(user.id))
+      loadExpenses()
     }
-  }, [user])
+  }, [user, loadExpenses])
 
   // Initialize month/year only on client mount to avoid SSR/client mismatch
   useEffect(() => {
@@ -48,6 +66,8 @@ export function ExpensesManager() {
 
   const total = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
 
+  if (selectedYear == null || selectedMonth == null) return null
+
   const goToPreviousMonth = () => {
     if (selectedMonth === 1) {
       setSelectedMonth(12)
@@ -66,9 +86,12 @@ export function ExpensesManager() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!user) return
+
+    setIsSaving(true)
+    setError(null)
 
     const formData = new FormData(e.currentTarget)
 
@@ -84,16 +107,28 @@ export function ExpensesManager() {
       year: selectedYear,
     }
 
-    saveExpense(expense)
-    setExpenses(getExpenses(user.id))
-    setIsDialogOpen(false)
-    setEditingExpense(null)
+    const success = await saveExpenseAsync(expense)
+
+    if (success) {
+      await loadExpenses()
+      setIsDialogOpen(false)
+      setEditingExpense(null)
+    } else {
+      setError('Error al guardar el gasto. Inténtalo de nuevo.')
+    }
+
+    setIsSaving(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!user) return
-    deleteExpense(id)
-    setExpenses(getExpenses(user.id))
+
+    const success = await deleteExpenseAsync(id)
+    if (success) {
+      await loadExpenses()
+    } else {
+      setError('Error al eliminar el gasto.')
+    }
   }
 
   const handleEdit = (expense: Expense) => {
@@ -122,95 +157,123 @@ export function ExpensesManager() {
             </p>
           </div>
 
-          <Dialog
-            open={isDialogOpen}
-            onOpenChange={(open) => {
-              setIsDialogOpen(open)
-              if (!open) setEditingExpense(null)
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button className="gradient-primary hover:opacity-90 rounded-xl gap-2 w-full sm:w-auto text-primary-foreground">
-                <Plus className="w-5 h-5" />
-                Añadir gasto
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md mx-4 bg-card border-border">
-              <DialogHeader>
-                <DialogTitle className="text-xl text-foreground">
-                  {editingExpense ? "Editar gasto" : "Nuevo gasto"}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-foreground">
-                    Descripción
-                  </Label>
-                  <Input
-                    id="description"
-                    name="description"
-                    defaultValue={editingExpense?.description}
-                    placeholder="Ej: Transporte lechones"
-                    required
-                    className="h-12 rounded-xl bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={loadExpenses}
+              disabled={isLoading}
+              className="rounded-xl border-border"
+              title="Refrescar datos"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open)
+                if (!open) setEditingExpense(null)
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button className="gradient-primary hover:opacity-90 rounded-xl gap-2 flex-1 sm:flex-none text-primary-foreground">
+                  <Plus className="w-5 h-5" />
+                  Añadir gasto
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md mx-4 bg-card border-border">
+                <DialogHeader>
+                  <DialogTitle className="text-xl text-foreground">
+                    {editingExpense ? "Editar gasto" : "Nuevo gasto"}
+                  </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-5 mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="invoiceNumber" className="text-foreground">
-                      Nº Factura
+                    <Label htmlFor="description" className="text-foreground">
+                      Descripción
                     </Label>
                     <Input
-                      id="invoiceNumber"
-                      name="invoiceNumber"
-                      defaultValue={editingExpense?.invoiceNumber}
-                      placeholder="12345"
-                      className="h-12 rounded-xl bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="amount" className="text-foreground">
-                      Importe (€)
-                    </Label>
-                    <Input
-                      id="amount"
-                      name="amount"
-                      type="number"
-                      step="0.01"
-                      defaultValue={editingExpense?.amount}
-                      placeholder="0.00"
+                      id="description"
+                      name="description"
+                      defaultValue={editingExpense?.description}
+                      placeholder="Ej: Transporte lechones"
                       required
                       className="h-12 rounded-xl bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="category" className="text-foreground">
-                    Categoría
-                  </Label>
-                  <Select name="category" defaultValue={editingExpense?.category || EXPENSE_CATEGORIES[0]}>
-                    <SelectTrigger className="h-12 rounded-xl bg-secondary/50 border-border text-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border">
-                      {EXPENSE_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat} className="text-foreground">
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full h-12 rounded-xl gradient-primary hover:opacity-90 text-primary-foreground"
-                >
-                  {editingExpense ? "Guardar cambios" : "Añadir gasto"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="invoiceNumber" className="text-foreground">
+                        Nº Factura
+                      </Label>
+                      <Input
+                        id="invoiceNumber"
+                        name="invoiceNumber"
+                        defaultValue={editingExpense?.invoiceNumber}
+                        placeholder="12345"
+                        className="h-12 rounded-xl bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="amount" className="text-foreground">
+                        Importe (€)
+                      </Label>
+                      <Input
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        step="0.01"
+                        defaultValue={editingExpense?.amount}
+                        placeholder="0.00"
+                        required
+                        className="h-12 rounded-xl bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category" className="text-foreground">
+                      Categoría
+                    </Label>
+                    <Select name="category" defaultValue={editingExpense?.category || EXPENSE_CATEGORIES[0]}>
+                      <SelectTrigger className="h-12 rounded-xl bg-secondary/50 border-border text-foreground">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        {EXPENSE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat} className="text-foreground">
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full h-12 rounded-xl gradient-primary hover:opacity-90 text-primary-foreground"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      editingExpense ? "Guardar cambios" : "Añadir gasto"
+                    )}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
+
+        {error && (
+          <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-xl border border-destructive/20 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-destructive" />
+            {error}
+          </div>
+        )}
 
         <Card className="bg-card/90 backdrop-blur-lg border-border/50 shadow-lg">
           <CardContent className="py-4">
@@ -313,7 +376,12 @@ export function ExpensesManager() {
           </Button>
         </CardHeader>
         <CardContent>
-          {filteredExpenses.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Cargando gastos...</p>
+            </div>
+          ) : filteredExpenses.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-20 h-20 rounded-full bg-secondary/50 flex items-center justify-center mx-auto mb-4">
                 <Receipt className="w-10 h-10 text-muted-foreground" />
