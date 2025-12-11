@@ -55,6 +55,18 @@ export function LoginForm() {
       return
     }
 
+    if (!/[A-Z]/.test(password)) {
+      setError("La contraseña debe tener al menos una letra mayúscula.")
+      setIsLoading(false)
+      return
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError("La contraseña debe tener al menos una letra minúscula.")
+      setIsLoading(false)
+      return
+    }
+
     const success = await register(name, email, password, farmName)
     if (!success) {
       setError("No se pudo registrar. Es posible que el email ya esté registrado o la contraseña sea muy débil.")

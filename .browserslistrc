@@ -1,4 +1,10 @@
-# Navegadores modernos únicamente - evita polyfills innecesarios
-# Esto elimina polyfills para Array.at, Array.flat, Object.fromEntries, etc.
+# Navegadores modernos únicamente - elimina polyfills innecesarios
+# Esto evita polyfills para Array.at, Array.flat, Object.fromEntries, etc.
+# Solo navegadores que soporten ES2022+ (Chrome 94+, Firefox 93+, Safari 15+, Edge 94+)
 
-defaults and fully supports es6-module
+last 1 Chrome version
+last 1 Firefox version
+last 1 Safari version
+last 1 Edge version
+not dead
+not op_mini all

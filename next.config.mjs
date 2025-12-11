@@ -22,6 +22,11 @@ const nextConfig = {
       'date-fns',
     ],
   },
+  // Optimizaciones de rendimiento
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
 }
 
 export default nextConfig
+
