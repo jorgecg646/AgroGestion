@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin"], display: "swap" })
@@ -22,7 +21,6 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`font-sans antialiased`} suppressHydrationWarning>
         {children}
-        <Analytics />
       </body>
     </html>
   )

@@ -1,23 +1,50 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "./auth-context"
-import { getExpenses } from "@/lib/storage"
-import { MONTHS, EXPENSE_CATEGORIES } from "@/lib/types"
+import { getExpensesAsync } from "@/lib/storage"
+import { MONTHS, EXPENSE_CATEGORIES, type Expense } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, TrendingDown, Wallet, Calendar, PiggyBank, Receipt } from "lucide-react"
+import { TrendingUp, TrendingDown, Wallet, Calendar, PiggyBank, Receipt, Loader2 } from "lucide-react"
 
 export function Dashboard() {
   const { user } = useAuth()
-  const expenses = user ? getExpenses(user.id) : []
-
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState<Date | null>(null)
+
+  const loadExpenses = useCallback(async () => {
+    if (!user) return
+    setIsLoading(true)
+    try {
+      const data = await getExpensesAsync(user.id)
+      setExpenses(data)
+    } catch (err) {
+      console.error('Error loading expenses:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      loadExpenses()
+    }
+  }, [user, loadExpenses])
 
   useEffect(() => {
     setCurrentDate(new Date())
   }, [])
 
   if (!currentDate) return null
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   const currentMonth = currentDate.getMonth() + 1
   const currentYear = currentDate.getFullYear()
