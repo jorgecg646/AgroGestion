@@ -76,19 +76,31 @@ export function LoginForm() {
     setIsLoading(false)
   }
 
+  // Función de validación de contraseña reutilizable
+  const validatePassword = (password: string, confirmPassword?: string): string | null => {
+    if (confirmPassword !== undefined && password !== confirmPassword) {
+      return "Las contraseñas no coinciden."
+    }
+    if (password.length < 6) {
+      return "La contraseña debe tener al menos 6 caracteres."
+    }
+    if (!/[A-Z]/.test(password)) {
+      return "La contraseña debe tener al menos una letra mayúscula."
+    }
+    if (!/[a-z]/.test(password)) {
+      return "La contraseña debe tener al menos una letra minúscula."
+    }
+    return null
+  }
+
   const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
-    if (newPassword !== confirmNewPassword) {
-      setError("Las contraseñas no coinciden.")
-      setIsLoading(false)
-      return
-    }
-
-    if (newPassword.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.")
+    const validationError = validatePassword(newPassword, confirmNewPassword)
+    if (validationError) {
+      setError(validationError)
       setIsLoading(false)
       return
     }
@@ -124,26 +136,9 @@ export function LoginForm() {
     const confirmPassword = formData.get("confirmPassword") as string
     const farmName = formData.get("farmName") as string
 
-    if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.")
-      setIsLoading(false)
-      return
-    }
-
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.")
-      setIsLoading(false)
-      return
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError("La contraseña debe tener al menos una letra mayúscula.")
-      setIsLoading(false)
-      return
-    }
-
-    if (!/[a-z]/.test(password)) {
-      setError("La contraseña debe tener al menos una letra minúscula.")
+    const validationError = validatePassword(password, confirmPassword)
+    if (validationError) {
+      setError(validationError)
       setIsLoading(false)
       return
     }
