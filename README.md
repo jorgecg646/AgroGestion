@@ -6,6 +6,8 @@ AgroGestion es una pequeña aplicación web para la gestión agrícola desarroll
 
 **Demo / Capturas:**
 
+![AgroGestion](public/AgroGestion.png)
+
 **Características principales**
 
 - **Autenticación básica:** flujo y componentes de login.
